@@ -1,11 +1,13 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
+#include "custom_msgs/srv/safety_distance.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 
 using std::placeholders::_1;
+using std::placeholders::_2;
 
 class DriveRobot : public rclcpp::Node
 {
@@ -18,6 +20,7 @@ public:
 
         publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
         subscription_ = this->create_subscription<sensor_msgs::msg::LaserScan>("/scan", 10, std::bind(&DriveRobot::scan_callback, this, _1));
+        service_ = this->create_service<custom_msgs::srv::SafetyDistance>("set_safety_distance", std::bind(&DriveRobot::safety_callback, this, _1, _2));
         timer_ = this->create_wall_timer(std::chrono::milliseconds(100),
                                          std::bind(&DriveRobot::timer_callback, this));
     }
@@ -32,6 +35,23 @@ private:
     void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
     {
         scan_ = msg;
+    }
+
+    void safety_callback(const std::shared_ptr<custom_msgs::srv::SafetyDistance::Request> request,
+                         std::shared_ptr<custom_msgs::srv::SafetyDistance::Response> response)
+    {
+        if (request->distance <= 0.0)
+        {
+            response->success = false;
+            response->message = "the safety distance must be positive";
+            RCLCPP_WARN(this->get_logger(), "Refused safety distance: '%f'", request->distance);
+            return;
+        }
+
+        safety_distance_ = request->distance;
+        response->success = true;
+        response->message = "safety distance set";
+        RCLCPP_INFO(this->get_logger(), "Safety distance set to: '%f'", safety_distance_);
     }
 
     double min_scan_in_sector(Sector sector)
@@ -136,6 +156,8 @@ private:
 
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr subscription_;
     sensor_msgs::msg::LaserScan::SharedPtr scan_;
+
+    rclcpp::Service<custom_msgs::srv::SafetyDistance>::SharedPtr service_;
 
     geometry_msgs::msg::Twist message;
     geometry_msgs::msg::Twist blocked_;

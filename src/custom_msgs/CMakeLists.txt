@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(driving_robot)
+project(custom_msgs)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -10,16 +10,10 @@ find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(custom_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
-add_executable(drive_robot src/drive_robot.cpp)
-ament_target_dependencies(drive_robot rclcpp geometry_msgs sensor_msgs custom_msgs)
-install(TARGETS drive_robot DESTINATION lib/${PROJECT_NAME})
-
-install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+rosidl_generate_interfaces(${PROJECT_NAME} "srv/SafetyDistance.srv")
+ament_export_dependencies(rosidl_default_runtime)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
