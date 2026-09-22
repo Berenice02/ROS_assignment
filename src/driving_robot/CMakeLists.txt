@@ -23,7 +23,10 @@ add_executable(obstacle_monitor src/obstacle_monitor.cpp)
 ament_target_dependencies(obstacle_monitor rclcpp sensor_msgs custom_msgs)
 target_include_directories(obstacle_monitor PRIVATE include)
 
-install(TARGETS drive_robot obstacle_monitor DESTINATION lib/${PROJECT_NAME})
+add_executable(velocity_monitor src/velocity_monitor.cpp)
+ament_target_dependencies(velocity_monitor rclcpp geometry_msgs custom_msgs)
+
+install(TARGETS drive_robot obstacle_monitor velocity_monitor DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 

@@ -32,8 +32,16 @@ def generate_launch_description():
         output='screen'
     )
 
+    velocity_monitor_node = Node(
+        package='driving_robot',
+        executable='velocity_monitor',
+        name='velocity_monitor',
+        output='screen'
+    )
+
     return LaunchDescription([
         simulation_launch,
         obstacle_monitor_node,
+        velocity_monitor_node,
         drive_robot_node
     ])

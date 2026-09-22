@@ -19,6 +19,7 @@ public:
         this->declare_parameter("angular_speed", 0.0);
 
         publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+        input_publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/user_input", 10);
         subscription_ = this->create_subscription<sensor_msgs::msg::LaserScan>("/scan", 10, std::bind(&DriveRobot::scan_callback, this, _1));
         obstacle_subscription_ = this->create_subscription<custom_msgs::msg::ClosestObstacle>("/closest_obstacle", 10, std::bind(&DriveRobot::obstacle_callback, this, _1));
         timer_ = this->create_wall_timer(std::chrono::milliseconds(100),
@@ -91,6 +92,7 @@ private:
                 recovering_ = false;
                 this->set_parameter(rclcpp::Parameter("linear_speed", 0.0));
                 this->set_parameter(rclcpp::Parameter("angular_speed", 0.0));
+                last_input_ = geometry_msgs::msg::Twist();
                 RCLCPP_WARN(this->get_logger(), "Safe area reached, stop");
             }
         }
@@ -99,6 +101,13 @@ private:
             geometry_msgs::msg::Twist user_input;
             user_input.linear.x = this->get_parameter("linear_speed").as_double();
             user_input.angular.z = this->get_parameter("angular_speed").as_double();
+
+            if (user_input.linear.x != last_input_.linear.x || user_input.angular.z != last_input_.angular.z)
+            {
+                last_input_ = user_input;
+                input_publisher_->publish(user_input);
+                RCLCPP_INFO(this->get_logger(), "New user input: '%f', '%f'", user_input.linear.x, user_input.angular.z);
+            }
 
             if (min_distance(user_input) < safety_distance_)
             {
@@ -120,6 +129,7 @@ private:
 
     rclcpp::TimerBase::SharedPtr timer_;
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr publisher_;
+    rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr input_publisher_;
 
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr subscription_;
     sensor_msgs::msg::LaserScan::SharedPtr scan_;
@@ -128,6 +138,7 @@ private:
 
     geometry_msgs::msg::Twist message;
     geometry_msgs::msg::Twist blocked_;
+    geometry_msgs::msg::Twist last_input_;
 
     bool recovering_ = false;
 
