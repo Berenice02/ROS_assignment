@@ -14,7 +14,8 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ClosestObstacle.msg"
-  "srv/SafetyDistance.srv")
+  "srv/SafetyDistance.srv"
+  "srv/AverageVelocity.srv")
 ament_export_dependencies(rosidl_default_runtime)
 
 if(BUILD_TESTING)
