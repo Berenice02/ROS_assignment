@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include "driving_robot/scan_sectors.hpp"
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -26,13 +27,7 @@ public:
     }
 
 private:
-    struct Sector
-    {
-        int first;
-        int last;
-    };
-
-    void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
+        void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
     {
         scan_ = msg;
     }
@@ -77,27 +72,27 @@ private:
         {
             if (velocity.angular.z > 0.0)
             {
-                return min_scan_in_sector(front_left_);
+                return min_scan_in_sector(scan_, FRONT_LEFT);
             }
             if (velocity.angular.z < 0.0)
             {
-                return min_scan_in_sector(front_right_);
+                return min_scan_in_sector(scan_, FRONT_RIGHT);
             }
-            return std::min(min_scan_in_sector(front_right_), min_scan_in_sector(front_left_));
+            return std::min(min_scan_in_sector(scan_, FRONT_RIGHT), min_scan_in_sector(scan_, FRONT_LEFT));
         }
 
         if (velocity.linear.x < 0.0)
         {
             if (velocity.angular.z > 0.0)
             {
-                return min_scan_in_sector(rear_right_);
+                return min_scan_in_sector(scan_, REAR_RIGHT);
             }
             if (velocity.angular.z < 0.0)
             {
-                return min_scan_in_sector(rear_left_);
+                return min_scan_in_sector(scan_, REAR_LEFT);
             }
             // the rear sector is split between the two ends of ranges
-            return std::min(min_scan_in_sector(rear_right_), min_scan_in_sector(rear_left_));
+            return std::min(min_scan_in_sector(scan_, REAR_RIGHT), min_scan_in_sector(scan_, REAR_LEFT));
         }
 
         return std::numeric_limits<double>::infinity();
@@ -166,11 +161,6 @@ private:
 
     double safety_distance_ = 0.4;
 
-    // the lidar publishes 720 beams over 360 degrees, starting from the rear
-    Sector rear_right_ = {0, 180};
-    Sector front_right_ = {180, 360};
-    Sector front_left_ = {360, 540};
-    Sector rear_left_ = {540, 719};
 };
 
 int main(int argc, char *argv[])
