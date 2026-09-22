@@ -1,14 +1,13 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
-#include "custom_msgs/srv/safety_distance.hpp"
+#include "custom_msgs/msg/closest_obstacle.hpp"
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include "driving_robot/scan_sectors.hpp"
 
 using std::placeholders::_1;
-using std::placeholders::_2;
 
 class DriveRobot : public rclcpp::Node
 {
@@ -21,48 +20,21 @@ public:
 
         publisher_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
         subscription_ = this->create_subscription<sensor_msgs::msg::LaserScan>("/scan", 10, std::bind(&DriveRobot::scan_callback, this, _1));
-        service_ = this->create_service<custom_msgs::srv::SafetyDistance>("set_safety_distance", std::bind(&DriveRobot::safety_callback, this, _1, _2));
+        obstacle_subscription_ = this->create_subscription<custom_msgs::msg::ClosestObstacle>("/closest_obstacle", 10, std::bind(&DriveRobot::obstacle_callback, this, _1));
         timer_ = this->create_wall_timer(std::chrono::milliseconds(100),
                                          std::bind(&DriveRobot::timer_callback, this));
     }
 
 private:
-        void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
+    void scan_callback(const sensor_msgs::msg::LaserScan::SharedPtr msg)
     {
         scan_ = msg;
     }
 
-    void safety_callback(const std::shared_ptr<custom_msgs::srv::SafetyDistance::Request> request,
-                         std::shared_ptr<custom_msgs::srv::SafetyDistance::Response> response)
+    void obstacle_callback(const custom_msgs::msg::ClosestObstacle::SharedPtr msg)
     {
-        if (request->distance <= 0.0)
-        {
-            response->success = false;
-            response->message = "the safety distance must be positive";
-            RCLCPP_WARN(this->get_logger(), "Refused safety distance: '%f'", request->distance);
-            return;
-        }
-
-        safety_distance_ = request->distance;
-        response->success = true;
-        response->message = "safety distance set";
-        RCLCPP_INFO(this->get_logger(), "Safety distance set to: '%f'", safety_distance_);
-    }
-
-    double min_scan_in_sector(Sector sector)
-    {
-        double minimum = std::numeric_limits<double>::infinity();
-
-        // find the minimum over the beams of the sector
-        for (int i = sector.first; i <= sector.last; i++)
-        {
-            double current = scan_->ranges[i];
-            if (std::isfinite(current) && current < minimum)
-            {
-                minimum = current;
-            }
-        }
-        return minimum;
+        // the safety distance comes from obstacle_monitor
+        safety_distance_ = msg->threshold;
     }
 
     double min_distance(const geometry_msgs::msg::Twist &velocity)
@@ -100,7 +72,7 @@ private:
 
     void timer_callback()
     {
-        if (!scan_)
+        if (!scan_ || !std::isfinite(safety_distance_))
         {
             return;
         }
@@ -152,15 +124,14 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr subscription_;
     sensor_msgs::msg::LaserScan::SharedPtr scan_;
 
-    rclcpp::Service<custom_msgs::srv::SafetyDistance>::SharedPtr service_;
+    rclcpp::Subscription<custom_msgs::msg::ClosestObstacle>::SharedPtr obstacle_subscription_;
 
     geometry_msgs::msg::Twist message;
     geometry_msgs::msg::Twist blocked_;
 
     bool recovering_ = false;
 
-    double safety_distance_ = 0.4;
-
+    double safety_distance_ = std::numeric_limits<double>::infinity();
 };
 
 int main(int argc, char *argv[])
