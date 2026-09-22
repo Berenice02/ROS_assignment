@@ -12,9 +12,10 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 add_executable(drive_robot src/drive_robot.cpp)
-ament_target_dependencies(drive_robot rclcpp geometry_msgs)
+ament_target_dependencies(drive_robot rclcpp geometry_msgs sensor_msgs)
 install(TARGETS drive_robot DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
