@@ -1,0 +1,3 @@
+[submodule "src/bme_gazebo_sensors"]
+	path = src/bme_gazebo_sensors
+	url = https://github.com/CarmineD8/bme_gazebo_sensors

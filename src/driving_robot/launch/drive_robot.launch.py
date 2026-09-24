@@ -11,7 +11,7 @@ def generate_launch_description():
 
     pkg_bme_gazebo_sensors = get_package_share_directory('bme_gazebo_sensors')
 
-    # starts Gazebo, RViz, the robot_state_publisher and the /cmd_vel bridge
+    # starts the simulation
     simulation_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_bme_gazebo_sensors, 'launch', 'spawn_robot.launch.py'),

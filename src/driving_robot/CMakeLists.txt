@@ -16,12 +16,10 @@ find_package(sensor_msgs REQUIRED)
 find_package(custom_msgs REQUIRED)
 
 add_executable(drive_robot src/drive_robot.cpp)
-ament_target_dependencies(drive_robot rclcpp geometry_msgs sensor_msgs custom_msgs)
-target_include_directories(drive_robot PRIVATE include)
+ament_target_dependencies(drive_robot rclcpp geometry_msgs custom_msgs)
 
 add_executable(obstacle_monitor src/obstacle_monitor.cpp)
 ament_target_dependencies(obstacle_monitor rclcpp sensor_msgs custom_msgs)
-target_include_directories(obstacle_monitor PRIVATE include)
 
 add_executable(velocity_monitor src/velocity_monitor.cpp)
 ament_target_dependencies(velocity_monitor rclcpp geometry_msgs custom_msgs)
