@@ -103,7 +103,7 @@ The custom `custom_msgs/srv/SafetyDistance` has the new threshold `distance` as 
 - `direction`: which of the four sectors it is in, `none` if no beam saw anything
 - `threshold`: the safety threshold currently in use
 
-At every cycle of the timer, `obstacle_monitor` fills `sectors[i]` of the `Obstacles` message with the minimum of the beams of sector `i`. The closest of the four is then also published on `/closest_obstacle`.
+At every cycle of the timer, `obstacle_monitor` fills `sectors[i]` of the `Obstacles` message with the minimum distance measured among the beams of sector `i`. The closest of the four is then also published on `/closest_obstacle`.
 
 ### 5. Average velocity
 Every time the user changes one of the two parameters, `drive_robot` also publishes the new command on `/user_input` as a `geometry_msgs/msg/Twist`. Only the commands of the user are published there.
