@@ -24,7 +24,7 @@ The solution is split into two packages.
 `driving_robot` contains the nodes implemented for this assignment, all written in C++:
 - `drive_robot` turns the input of the user into velocity commands and stops the robot before it hits something
 - `obstacle_monitor` reads the lidar, reports the closest obstacle of each sector (see [Safety behavior](#2-safety-behavior)) and exposes the service to change the safety threshold
-- `velocity_monitor` keeps track of the last 5 commands of the user and gives their average on request
+- `velocity_monitor` keeps track of the last 5 commands of the user and exposes the service to get their average
 
 The package also contains the launch file that starts the simulation and the three nodes together.
 
@@ -42,7 +42,7 @@ This feature is implemented in the `drive_robot` node.
 
 The node publishes a `geometry_msgs/msg/Twist` message on `/cmd_vel` at a fixed rate of 20 Hz. The values it publishes come from two ROS 2 parameters, `linear_speed` and `angular_speed`, read again at every cycle with `get_parameter()`.
 
-A differential drive robot can only move forward/backward and rotate around its vertical axis, which is why only `linear.x` and `angular.z` of the `Twist` are used.
+A differential drive robot can only move forward/backward and rotate around its vertical axis, which is why only `linear.x` (corresponding to `linear_speed`) and `angular.z` (corresponding to `angular_speed`) of the `Twist` message are used.
 
 The user changes the speed by setting the parameters one by one:
 ```bash
@@ -65,12 +65,15 @@ This feature is split between two nodes.
 
 `obstacle_monitor` is the only node subscribing to `/scan`. It stores the last scan received and publishes a `custom_msgs/msg/Obstacles` on `/obstacles`.
 
-The scan has 720 beams covering 360°, the first one pointing at the rear of the robot. I split them into four 90° sectors, visible in the image:
+The scan has 720 beams covering 360°, the first one pointing at the rear of the robot. I split them into four 90° sectors, as shown in the image:
+
 ![Lidar sectors](sectors.png)
 
 Consequently, the `sectors` field of a `custom_msgs/msg/Obstacles` message is an array of four `ClosestObstacle` (see [Closest obstacle](#4-closest-obstacle)), one per sector. The distance of a sector is the minimum distance among its beams.
 
 `drive_robot` subscribes to `/obstacles` and prevent the user from driving the robot into an obstacle. It does not read the lidar itself: it keeps the last `Obstacles` message and only checks the sectors the robot is moving towards. Checking the whole scan would stop the robot every time something is close, even behind it while it moves forward.
+
+The table summarizes which sectors are checked for different combinations of angular and linear velocities.
 
 | `linear_speed` | `angular_speed` | Sectors checked |
 |---|---|---|
@@ -82,7 +85,7 @@ Consequently, the `sectors` field of a `custom_msgs/msg/Obstacles` message is an
 | < 0 | 0 | rear left and rear right |
 | 0 | any | none |
 
-Going straight, the whole half the robot is moving towards is checked; turning, only the quadrant on the side it is turning to. Going backwards the two quadrants are swapped: turning left in reverse swings the rear of the robot to its right, which is where it can hit something. A command with `linear_speed` at `0.0` checks nothing, because turning in place does not move the robot towards an obstacle.
+In other words, going straight, the whole half the robot is moving towards is checked; turning, only the quadrant on the side it is turning to. Going backwards the two quadrants are swapped: turning left in reverse swings the rear of the robot to its right, which is where it can hit something. A command with `linear_speed` at `0.0` checks nothing, because turning in place does not move the robot towards an obstacle.
 
 Until the first `/obstacles` message arrives, `drive_robot` publishes nothing: it never moves the robot without knowing whether it is safe, and for the same reason it stays silent if `obstacle_monitor` is not running.
 
@@ -98,7 +101,7 @@ The service to change the safety threshold is provided by `obstacle_monitor` on 
 The custom `custom_msgs/srv/SafetyDistance` has the new threshold `distance` as request. The response contains a boolean `success`, which is `false` if the request was refused, and a `message` explaining why. Indeed, a request with a distance of `0.0` or less is refused, since it would disable the safety behavior, and the old threshold is kept.
 
 ### 4. Closest obstacle
-`obstacle_monitor` publishes also a `custom_msgs/msg/ClosestObstacle` message on `/closest_obstacle`, using the last scan received:
+`obstacle_monitor` publishes also a `custom_msgs/msg/ClosestObstacle` message on the `/closest_obstacle` topic, using the last scan received. The `ClosestObstacle` message has the following structure:
 - `distance`: how far the closest obstacle is
 - `direction`: which of the four sectors it is in, `none` if no beam saw anything
 - `threshold`: the safety threshold currently in use
